@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe Game do
 	before do
 		@game = Game.new(["Alice", "Bob"])
-		@game.play_one_more_game
+		@game.begin_game
 	end
 
 	describe '#initialize' do

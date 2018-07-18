@@ -46,28 +46,43 @@ class Player
 	include Enumerable
 
 	attr_reader :want_one_more_turn
+	attr_reader :hands_value
+	attr_reader :name
+	attr_reader :bet
+
+	MINIMUM_BET = 100
+	MAXIMUM_BET = 5000
+	BET_UNIT = 100
 
 	def initialize(name)
 		@name = name
+		@wallet = 10000
+		@bet = 0
 		@hands = []
-		@total = 0
+		@hands_value = 0
 		@want_one_more_turn = true
 	end
 
 	def init
+		@bet = 0
 		@hands = []
-		@total = 0
+		@hands_value = 0
 		@want_one_more_turn = true
 	end
 
+	def bet_money
+		@bet = 100
+		puts "#{@name} bet #{@bet}."
+	end
+
 	def select
-		count_score < 17
+		count_hands_value < 17
 	end
 
 	def hit(deck)
 		@hands << deck.cards.shift
 		show_card
-		@want_one_more_turn = false if count_score >= 21
+		@want_one_more_turn = false if count_hands_value >= 21
 	end
 
 	def stand
@@ -75,14 +90,14 @@ class Player
 	end
 
 	def show_card
-		puts "#{@name} got #{@hands.last.suit} #{@hands.last.display_rank}. score:#{count_score}"
+		puts "#{@name} got #{@hands.last.suit} #{@hands.last.display_rank}. hands_value:#{count_hands_value}"
 	end
 
-	def count_score
-		@total = 0
-		@hands.each { |card| @total += value_rank(card.rank) }
+	def count_hands_value
+		@hands_value = 0
+		@hands.each { |card| @hands_value += value_rank(card.rank) }
 		@hands.each { |card| switch_ace(card) }
-		@total
+		@hands_value
 	end
 
 	def value_rank(rank)
@@ -99,24 +114,49 @@ class Player
 	end
 
 	def switch_ace(card)
-		if @total > 21 && card.rank == 1
-			@total -= 10
+		if @hands_value > 21 && card.rank == 1
+			@hands_value -= 10
 		end
 	end
 
 	def open_hand
 		message = "#{@name} have "
 		@hands.each { |card| message += "#{card.suit} #{card.display_rank} "}
-		message += "and score is #{count_score}."
+		message += "and hands_value is #{count_hands_value}."
 		puts message
 	end
 end
 
 class User < Player
+	attr_accessor :want_one_more_game
+	def initialize(name)
+		super(name)
+		@want_one_more_game = true
+	end
+
+	def bet_money
+		puts "How much money do you bet?"
+		input = gets.chomp.to_i
+		if input > @wallet
+			puts "You don't have so much money."
+			bet
+		elsif input > MAXIMUM_BET
+			puts "You can bet #{MAXIMUM_BET} at most."
+			bet
+		elsif input < MINIMUM_BET
+			puts "You have to bet #{MINIMUM_BET} at least."
+			bet
+		else
+			@bet = input
+			@wallet -= input
+			puts "You bet #{@bet}. You have #{@wallet} in your wallet."
+		end
+	end
+
 	def select
-		puts "Which do you do, hit or stand? score:#{count_score} [hit->(h):stand->(s)]"
-		answer = gets.chomp
-		if answer == 'h'
+		puts "Which do you do, hit or stand? hands_value:#{count_hands_value} [hit->(h):stand->(s)]"
+		input = gets.chomp
+		if input == 'h'
 			true
 		else
 			false
@@ -127,7 +167,7 @@ end
 class Dealer < Player
 	def show_card
 		if @hands.size < 2
-			puts "#{@name} got #{@hands.last.suit} #{@hands.last.display_rank}. score:#{count_score}"
+			puts "#{@name} got #{@hands.last.suit} #{@hands.last.display_rank}. hands_value:#{count_hands_value}"
 		else
 			puts "#{@name} got a card."
 		end
@@ -139,15 +179,23 @@ class Game
 
 	def initialize(player_names)
 		@players = [User.new("You")]
+		@user = @players[0]
 		@dealer = Dealer.new("Dealer")
 		player_names.each { |name| @players << Player.new(name)}
+	end
+
+	def begin_game
+		while @user.want_one_more_game
+			play_one_more_game
+		end
 	end
 
 	def play_one_more_game
 		init
 
-		@players.each { |player| player.hit(@deck) }
-		@players.each { |player| player.hit(@deck) }
+		@players.each { |player| player.bet_money }
+		2.times { @players.each { |player| player.hit(@deck) } }
+		2.times { @dealer.hit(@deck) }
 
 		while @players.any? { |player| player.want_one_more_turn }
 			play_one_more_turn
@@ -158,6 +206,14 @@ class Game
 		end
 
 		judge
+
+		puts "Do you want to play one more game? [yes->(y):no->(n)]"
+		input = gets.chomp
+		if input == "y"
+			@user.want_one_more_game = true
+		else
+			@user.want_one_more_game = false
+		end
 	end
 
 	def play_one_more_turn
@@ -170,11 +226,28 @@ class Game
 
 	def init
 		@players.each { |player| player.init }
+		@dealer.init
 		@deck = Deck.new
 		@deck.shuffle
 	end
 
 	def judge
 		@dealer.open_hand
+		@players.each do |player|
+			if player.hands_value > 21
+				puts "#{player.name} lose. #{player.name} lose #{player.bet}."
+			elsif @dealer.hands_value > 21
+				puts "#{player.name} win! #{player.name} get #{player.bet}."
+			else
+				case player.hands_value <=> @dealer.hands_value
+				when 1
+					puts "#{player.name} win! #{player.name} get #{player.bet}."
+				when 0
+					puts "#{player.name} draw."
+				when -1
+					puts "#{player.name} lose. #{player.name} lose #{player.bet}."
+				end
+			end
+		end					
 	end
 end
