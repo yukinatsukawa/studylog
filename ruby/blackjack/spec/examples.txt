@@ -1,4 +1,4 @@
 example_id                                  | status | run_time      |
 ------------------------------------------- | ------ | ------------- |
-./spec/blackjack_integration_spec.rb[1:1:1] | passed | 20.84 seconds |
+./spec/blackjack_integration_spec.rb[1:1:1] | failed | 3.89 seconds  |
 ./spec/blackjack_spec.rb[1:1:1]             | failed | 10.52 seconds |

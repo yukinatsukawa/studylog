@@ -140,7 +140,6 @@ class Game
 	def initialize(player_names)
 		@players = [User.new("You")]
 		@dealer = Dealer.new("Dealer")
-		@players << @dealer
 		player_names.each { |name| @players << Player.new(name)}
 	end
 
@@ -152,6 +151,10 @@ class Game
 
 		while @players.any? { |player| player.want_one_more_turn }
 			play_one_more_turn
+		end
+
+		while @dealer.want_one_more_turn
+			@dealer.select ? @dealer.hit(@deck) : @dealer.stand
 		end
 
 		judge

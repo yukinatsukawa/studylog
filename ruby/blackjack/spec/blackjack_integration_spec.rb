@@ -7,12 +7,8 @@ RSpec.describe Game do
 	end
 
 	describe '#initialize' do
-		it "there_are_4_players" do
-			expect(@game.players.size).to eq 4
+		it "there_are_3_players" do
+			expect(@game.players.size).to eq 3
 		end
-	end
-
-	describe '#play_one_more_game' do
-		#
 	end
 end
