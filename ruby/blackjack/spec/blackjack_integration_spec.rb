@@ -1,4 +1,5 @@
 require 'spec_helper'
+require "blackjack"
 
 RSpec.describe Game do
   before do
