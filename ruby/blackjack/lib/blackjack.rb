@@ -47,8 +47,6 @@ class Player
 
 	attr_reader :want_one_more_turn
 	attr_reader :hands_value
-	attr_reader :name
-	attr_reader :bet
 
 	MINIMUM_BET = 100
 	MAXIMUM_BET = 5000
@@ -72,7 +70,8 @@ class Player
 
 	def bet_money
 		@bet = 100
-		puts "#{@name} bet #{@bet}."
+		@wallet -= @bet
+		puts "#{@name} bet #{@bet}. wallet: #{@wallet}"
 	end
 
 	def select
@@ -90,7 +89,7 @@ class Player
 	end
 
 	def show_card
-		puts "#{@name} got #{@hands.last.suit} #{@hands.last.display_rank}. hands_value:#{count_hands_value}"
+		puts "#{@name} get #{@hands.last.suit} #{@hands.last.display_rank}. hands_value:#{count_hands_value}"
 	end
 
 	def count_hands_value
@@ -120,11 +119,32 @@ class Player
 	end
 
 	def open_hand
-		message = "#{@name} have "
+		message = "#{@name} has "
 		@hands.each { |card| message += "#{card.suit} #{card.display_rank} "}
 		message += "and hands_value is #{count_hands_value}."
 		puts message
 	end
+
+	def judge(dealer)
+		if @hands_value > 21
+			result = "lose"
+		elsif dealer.hands_value > 21
+			result = "win"
+			@wallet += @bet * 2
+		else
+			case @hands_value <=> dealer.hands_value
+			when 1
+				result = "win"
+				@wallet += @bet * 2
+			when 0
+				result = "draw"
+				@wallet += @bet
+			when -1
+				result = "lose"
+			end
+		end
+		puts "#{@name} #{result}. wallet: #{@wallet}"
+	end					
 end
 
 class User < Player
@@ -147,9 +167,9 @@ class User < Player
 			puts "You have to bet #{MINIMUM_BET} at least."
 			bet
 		else
-			@bet = input
-			@wallet -= input
-			puts "You bet #{@bet}. You have #{@wallet} in your wallet."
+			@bet = input/BET_UNIT*BET_UNIT
+			@wallet -= @bet
+			puts "You bet #{@bet}. wallet: #{@wallet}"
 		end
 	end
 
@@ -167,9 +187,9 @@ end
 class Dealer < Player
 	def show_card
 		if @hands.size < 2
-			puts "#{@name} got #{@hands.last.suit} #{@hands.last.display_rank}. hands_value:#{count_hands_value}"
+			puts "#{@name} get #{@hands.last.suit} #{@hands.last.display_rank}. hands_value:#{count_hands_value}"
 		else
-			puts "#{@name} got a card."
+			puts "#{@name} get a card."
 		end
 	end
 end
@@ -205,7 +225,8 @@ class Game
 			@dealer.select ? @dealer.hit(@deck) : @dealer.stand
 		end
 
-		judge
+		@dealer.open_hand
+		@players.each { |player| player.judge(@dealer) }
 
 		puts "Do you want to play one more game? [yes->(y):no->(n)]"
 		input = gets.chomp
@@ -229,25 +250,5 @@ class Game
 		@dealer.init
 		@deck = Deck.new
 		@deck.shuffle
-	end
-
-	def judge
-		@dealer.open_hand
-		@players.each do |player|
-			if player.hands_value > 21
-				puts "#{player.name} lose. #{player.name} lose #{player.bet}."
-			elsif @dealer.hands_value > 21
-				puts "#{player.name} win! #{player.name} get #{player.bet}."
-			else
-				case player.hands_value <=> @dealer.hands_value
-				when 1
-					puts "#{player.name} win! #{player.name} get #{player.bet}."
-				when 0
-					puts "#{player.name} draw."
-				when -1
-					puts "#{player.name} lose. #{player.name} lose #{player.bet}."
-				end
-			end
-		end					
 	end
 end
